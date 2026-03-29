@@ -1,0 +1,39 @@
+artifact_path: file:C:/Users/mseitz3/OneDrive - DXC Production/school/MachineLearning/Evaluation/mlruns/1/models/m-9b8d680c2fd34f46be20a372e25f311d/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.14.3
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+is_signature_from_type_hint: false
+mlflow_version: 3.10.1
+model_id: m-9b8d680c2fd34f46be20a372e25f311d
+model_size_bytes: 65118
+model_uuid: m-9b8d680c2fd34f46be20a372e25f311d
+prompts: null
+run_id: 3c8d643a702a460a8abbecf35b00ed99
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "MedInc", "required": true}, {"type": "double",
+    "name": "HouseAge", "required": true}, {"type": "double", "name": "AveRooms",
+    "required": true}, {"type": "double", "name": "AveBedrms", "required": true},
+    {"type": "double", "name": "Population", "required": true}, {"type": "double",
+    "name": "AveOccup", "required": true}, {"type": "double", "name": "Latitude",
+    "required": true}, {"type": "double", "name": "Longitude", "required": true}]'
+  outputs: '[{"type": "double", "required": true}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-03-28 21:53:35.973131'

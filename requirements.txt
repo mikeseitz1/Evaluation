@@ -1,0 +1,15 @@
+
+# Python Requirements for California Housing MLflow Exercise
+# Exercise 6.7 - Machine Learning Design for Business
+
+# Core ML and Data Science Libraries
+numpy==1.26.4
+pandas==2.1.4
+scikit-learn==1.5.1
+
+# MLflow for Experiment Tracking
+mlflow==2.12.2
+
+# Optional but recommended
+matplotlib==3.8.0
+seaborn==0.13.0
