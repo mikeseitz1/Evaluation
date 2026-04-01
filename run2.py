@@ -1,10 +1,10 @@
 
 """
-California Housing Price Prediction - MLflow Experiment Tracking
+Telco Customer Churn Prediction - MLflow Experiment Tracking
 Exercise 6.7 from Machine Learning Design for Business
 
 This script demonstrates experiment tracking with MLflow using the 
-California Housing dataset to predict home prices for Zillow.
+Telco Customer Churn dataset to predict customer churn.
 """
 
 import mlflow
@@ -12,21 +12,48 @@ import mlflow.sklearn
 import pandas as pd
 import numpy as np
 import os
-from sklearn.datasets import fetch_california_housing
+import joblib
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
 def prepare_data():
-    """Load and prepare the California Housing dataset."""
-    print("Loading California Housing dataset...")
-    data = fetch_california_housing(as_frame=True)
-    X = data.data
-    y = data.target
+    """Load and prepare the Telco Customer Churn dataset."""
+    print("Loading Telco Customer Churn dataset...")
+    data = pd.read_csv('WA_Fn-UseC_-Telco-Customer-Churn.csv')
+    
+    # Drop customerID as it's not useful for prediction
+    data = data.drop('customerID', axis=1)
+    
+    # Convert TotalCharges to numeric, handling empty strings
+    data['TotalCharges'] = pd.to_numeric(data['TotalCharges'], errors='coerce')
+    
+    # Impute missing TotalCharges with mean
+    data['TotalCharges'].fillna(data['TotalCharges'].mean(), inplace=True)
+    
+    # Convert Churn to binary: Yes=1, No=0
+    data['Churn'] = data['Churn'].map({'Yes': 1, 'No': 0})
+    
+    # Separate features and target
+    X = data.drop('Churn', axis=1)
+    y = data['Churn']
+    
+    # One-hot encode categorical features
+    X = pd.get_dummies(X, drop_first=True)
+    
+    # Normalize features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    X = pd.DataFrame(X_scaled, columns=X.columns)
+    
+    # Save preprocessing artifacts for API use
+    import joblib
+    joblib.dump(scaler, 'scaler.pkl')
+    joblib.dump(list(X.columns), 'feature_columns.pkl')
     
     # Split the data
     X_train, X_test, y_train, y_test = train_test_split(
@@ -45,17 +72,18 @@ def evaluate_model(model, X_test, y_test):
     y_pred = model.predict(X_test)
     
     metrics = {
-        "rmse": np.sqrt(mean_squared_error(y_test, y_pred)),
-        "mae": mean_absolute_error(y_test, y_pred),
-        "r2": r2_score(y_test, y_pred)
+        "accuracy": accuracy_score(y_test, y_pred),
+        "precision": precision_score(y_test, y_pred),
+        "recall": recall_score(y_test, y_pred),
+        "f1": f1_score(y_test, y_pred)
     }
     
     return metrics, y_pred
 
 
-def train_linear_regression(X_train, X_test, y_train, y_test):
-    """Train and log Linear Regression model."""
-    run_name = "Linear Regression"
+def train_logistic_regression(X_train, X_test, y_train, y_test):
+    """Train and log Logistic Regression model."""
+    run_name = "Logistic Regression"
     
     with mlflow.start_run(run_name=run_name) as run:
         print(f"{'='*60}")
@@ -63,19 +91,20 @@ def train_linear_regression(X_train, X_test, y_train, y_test):
         print(f"{'='*60}")
         
         # Log dataset information
-        mlflow.log_param("dataset", "California Housing")
+        mlflow.log_param("dataset", "Telco Customer Churn")
         mlflow.log_param("train_samples", X_train.shape[0])
         mlflow.log_param("test_samples", X_test.shape[0])
         mlflow.log_param("n_features", X_train.shape[1])
-        mlflow.log_param("preprocessing", "None")
+        mlflow.log_param("preprocessing", "StandardScaler + OneHotEncoding + Imputation")
         
         # Train model
-        model = LinearRegression()
+        model = LogisticRegression(random_state=42, max_iter=1000)
         model.fit(X_train, y_train)
         
         # Log model parameters
-        mlflow.log_param("model_type", "LinearRegression")
-        mlflow.log_param("fit_intercept", model.fit_intercept)
+        mlflow.log_param("model_type", "LogisticRegression")
+        mlflow.log_param("random_state", 42)
+        mlflow.log_param("max_iter", 1000)
         
         # Evaluate and log metrics
         metrics, y_pred = evaluate_model(model, X_test, y_test)
@@ -88,9 +117,10 @@ def train_linear_regression(X_train, X_test, y_train, y_test):
             input_example=X_test.iloc[:5]
         )
         
-        print(f"RMSE: {metrics['rmse']:.4f}")
-        print(f"MAE: {metrics['mae']:.4f}")
-        print(f"R²: {metrics['r2']:.4f}")
+        print(f"Accuracy: {metrics['accuracy']:.4f}")
+        print(f"Precision: {metrics['precision']:.4f}")
+        print(f"Recall: {metrics['recall']:.4f}")
+        print(f"F1 Score: {metrics['f1']:.4f}")
         
         return metrics
 
@@ -105,11 +135,11 @@ def train_decision_tree(X_train, X_test, y_train, y_test):
         print("="*60)
         
         # Log dataset information
-        mlflow.log_param("dataset", "California Housing")
+        mlflow.log_param("dataset", "Telco Customer Churn")
         mlflow.log_param("train_samples", X_train.shape[0])
         mlflow.log_param("test_samples", X_test.shape[0])
         mlflow.log_param("n_features", X_train.shape[1])
-        mlflow.log_param("preprocessing", "None")
+        mlflow.log_param("preprocessing", "StandardScaler + OneHotEncoding + Imputation")
         
         # Model hyperparameters
         params = {
@@ -120,11 +150,11 @@ def train_decision_tree(X_train, X_test, y_train, y_test):
         }
         
         # Train model
-        model = DecisionTreeRegressor(**params)
+        model = DecisionTreeClassifier(**params)
         model.fit(X_train, y_train)
         
         # Log model parameters
-        mlflow.log_param("model_type", "DecisionTreeRegressor")
+        mlflow.log_param("model_type", "DecisionTreeClassifier")
         mlflow.log_params(params)
         
         # Evaluate and log metrics
@@ -138,9 +168,10 @@ def train_decision_tree(X_train, X_test, y_train, y_test):
             input_example=X_test.iloc[:5]
         )
         
-        print(f"RMSE: {metrics['rmse']:.4f}")
-        print(f"MAE: {metrics['mae']:.4f}")
-        print(f"R²: {metrics['r2']:.4f}")
+        print(f"Accuracy: {metrics['accuracy']:.4f}")
+        print(f"Precision: {metrics['precision']:.4f}")
+        print(f"Recall: {metrics['recall']:.4f}")
+        print(f"F1 Score: {metrics['f1']:.4f}")
         
         return metrics
 
@@ -155,11 +186,11 @@ def train_random_forest(X_train, X_test, y_train, y_test):
         print("="*60)
         
         # Log dataset information
-        mlflow.log_param("dataset", "California Housing")
+        mlflow.log_param("dataset", "Telco Customer Churn")
         mlflow.log_param("train_samples", X_train.shape[0])
         mlflow.log_param("test_samples", X_test.shape[0])
         mlflow.log_param("n_features", X_train.shape[1])
-        mlflow.log_param("preprocessing", "None")
+        mlflow.log_param("preprocessing", "StandardScaler + OneHotEncoding + Imputation")
         
         # Model hyperparameters
         params = {
@@ -172,11 +203,11 @@ def train_random_forest(X_train, X_test, y_train, y_test):
         }
         
         # Train model
-        model = RandomForestRegressor(**params)
+        model = RandomForestClassifier(**params)
         model.fit(X_train, y_train)
         
         # Log model parameters
-        mlflow.log_param("model_type", "RandomForestRegressor")
+        mlflow.log_param("model_type", "RandomForestClassifier")
         mlflow.log_params(params)
         
         # Evaluate and log metrics
@@ -200,83 +231,20 @@ def train_random_forest(X_train, X_test, y_train, y_test):
             input_example=X_test.iloc[:5]
         )
         
-        print(f"RMSE: {metrics['rmse']:.4f}")
-        print(f"MAE: {metrics['mae']:.4f}")
-        print(f"R²: {metrics['r2']:.4f}")
+        print(f"Accuracy: {metrics['accuracy']:.4f}")
+        print(f"Precision: {metrics['precision']:.4f}")
+        print(f"Recall: {metrics['recall']:.4f}")
+        print(f"F1 Score: {metrics['f1']:.4f}")
         
         return metrics
 
-
-def train_random_forest_with_scaling(X_train, X_test, y_train, y_test):
-    """
-    Train and log Random Forest model with feature scaling.
-    
-    NOTE: Tree-based models (Decision Trees, Random Forests) are scale-invariant
-    because they make splits based on feature values, not distances. Feature scaling
-    does NOT improve tree performance and adds computational overhead. This variant
-    is included to demonstrate that scaling is unnecessary for tree-based estimators.
-    """
-    run_name = "Random Forest with Scaling"
-    
-    with mlflow.start_run(run_name=run_name) as run:
-        print("="*60)
-        print(f"Training: {run_name}")
-        print("="*60)
-        print("(Note: Scaling does not affect tree performance)")
-        
-        # Apply feature scaling (for demonstration purposes)
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-        
-        # Log dataset information
-        mlflow.log_param("dataset", "California Housing")
-        mlflow.log_param("train_samples", X_train.shape[0])
-        mlflow.log_param("test_samples", X_test.shape[0])
-        mlflow.log_param("n_features", X_train.shape[1])
-        mlflow.log_param("preprocessing", "StandardScaler (for demo)")
-        
-        # Model hyperparameters (same as unscaled version)
-        params = {
-            "n_estimators": 100,
-            "max_depth": 15,
-            "min_samples_split": 10,
-            "min_samples_leaf": 4,
-            "random_state": 42,
-            "n_jobs": -1
-        }
-        
-        # Train model
-        model = RandomForestRegressor(**params)
-        model.fit(X_train_scaled, y_train)
-        
-        # Log model parameters
-        mlflow.log_param("model_type", "RandomForestRegressor")
-        mlflow.log_params(params)
-        
-        # Evaluate and log metrics
-        metrics, y_pred = evaluate_model(model, X_test_scaled, y_test)
-        mlflow.log_metrics(metrics)
-        
-        # Log model
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            name="model",
-            input_example=X_test_scaled[:5]
-        )
-        
-        print(f"RMSE: {metrics['rmse']:.4f}")
-        print(f"MAE: {metrics['mae']:.4f}")
-        print(f"R²: {metrics['r2']:.4f}")
-        
-        return metrics
 
 
 def main():
     """Main execution function."""
     print("\n" + "="*60)
-    print("California Housing Price Prediction - MLflow Experiment")
-    print("Exercise 6.7: Zillow Home Price Estimation")
+    print("Telco Customer Churn Prediction - MLflow Experiment")
+    print("Exercise 6.7: Customer Churn Classification")
     print("="*60)
     
     # Set MLflow tracking URI to local SQLite database
@@ -285,7 +253,7 @@ def main():
     print(f"MLflow Tracking URI: {tracking_uri}")
     
     # Set experiment name
-    experiment_name = "Zillow California Housing Price Prediction2"
+    experiment_name = "Telco Customer Churn Prediction"
     mlflow.set_experiment(experiment_name)
     print(f"MLflow Experiment: {experiment_name}")
     
@@ -294,26 +262,25 @@ def main():
     
     # Train models
     results = {}
-    results['Linear Regression'] = train_linear_regression(X_train, X_test, y_train, y_test)
+    results['Logistic Regression'] = train_logistic_regression(X_train, X_test, y_train, y_test)
     results['Decision Tree'] = train_decision_tree(X_train, X_test, y_train, y_test)
     results['Random Forest'] = train_random_forest(X_train, X_test, y_train, y_test)
-    results['Random Forest with Scaling'] = train_random_forest_with_scaling(X_train, X_test, y_train, y_test)
     
     # Summary
     print("\n" + "="*60)
     print("EXPERIMENT SUMMARY")
     print("="*60)
-    print(f"\n{'Model':<30} {'RMSE':<12} {'MAE':<12} {'R²':<12}")
+    print(f"\n{'Model':<30} {'Accuracy':<12} {'Precision':<12} {'Recall':<12} {'F1':<12}")
     print("-" * 60)
     
     for model_name, metrics in results.items():
-        print(f"{model_name:<30} {metrics['rmse']:<12.4f} {metrics['mae']:<12.4f} {metrics['r2']:<12.4f}")
+        print(f"{model_name:<30} {metrics['accuracy']:<12.4f} {metrics['precision']:<12.4f} {metrics['recall']:<12.4f} {metrics['f1']:<12.4f}")
     
     # Find best model
-    best_model = min(results.items(), key=lambda x: x[1]['rmse'])
+    best_model = max(results.items(), key=lambda x: x[1]['f1'])
     print("\n" + "="*60)
     print(f"Best Model: {best_model[0]}")
-    print(f"RMSE: {best_model[1]['rmse']:.4f}")
+    print(f"F1 Score: {best_model[1]['f1']:.4f}")
     print("="*60)
     
     print("\n[SUCCESS] Experiments completed successfully!")

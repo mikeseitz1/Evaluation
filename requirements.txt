@@ -1,5 +1,5 @@
 
-# Python Requirements for California Housing MLflow Exercise
+# Python Requirements for Telco Churn MLflow Exercise
 # Exercise 6.7 - Machine Learning Design for Business
 
 # Core ML and Data Science Libraries
@@ -9,6 +9,12 @@ scikit-learn==1.5.1
 
 # MLflow for Experiment Tracking
 mlflow==2.12.2
+
+# Web Frameworks
+fastapi==0.104.1
+uvicorn==0.24.0
+streamlit==1.28.1
+pydantic==2.5.0
 
 # Optional but recommended
 matplotlib==3.8.0
