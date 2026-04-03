@@ -1,12 +1,3 @@
-
-"""
-California Housing Price Prediction - MLflow Experiment Tracking
-Exercise 6.7 from Machine Learning Design for Business
-
-This script demonstrates experiment tracking with MLflow using the 
-California Housing dataset to predict home prices for Zillow.
-"""
-
 import mlflow
 import mlflow.sklearn
 import pandas as pd

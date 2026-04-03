@@ -1,0 +1,14 @@
+flowchart TD
+    A[Data Sources\nCSV / DB / Sample Data] --> B[Ingestion Pipeline\nPython]
+    B --> C[Data Validation\nGreat Expectations / Pandera]
+    C --> D[Feature Engineering\nPython Pipelines]
+    D --> E[Post-Feature Validation]
+    E --> F[Training + Tuning\nscikit-learn / XGBoost / etc.]
+    F --> G[Evaluation + Threshold Checks]
+    G --> H[MLflow Tracking\nparams, metrics, artifacts]
+    H --> I[Model Registry\ncandidate / staging]
+    I --> J[Packaging + API Validation]
+    J --> K[FastAPI Model Service]
+    K --> L[Streamlit App\nexperiment control + scoring UI]
+    K --> M[Monitoring\nlogs, drift, latency, errors]
+    M --> H
