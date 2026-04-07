@@ -10,6 +10,7 @@ This project demonstrates a complete machine learning workflow for predicting cu
 - `requirements.txt` - Python dependencies
 - `dvc.yaml` - DVC pipeline configuration
 - `params.yaml` - Centralized hyperparameter and configuration file
+- **`validation.py`** - Comprehensive validation utilities (schema, outlier detection, cross-field validation)
 - **`startup.bat`** - Quick start script for Windows (batch)
 - **`startup.ps1`** - Quick start script for Windows (PowerShell)
 - **`startup.py`** - Quick start script for all platforms (Python)
@@ -20,6 +21,7 @@ This project demonstrates a complete machine learning workflow for predicting cu
 - `mlruns/` - MLflow experiment data
 - `.dvc/` - DVC configuration and cache
 - `DVC_SETUP.md` - Detailed DVC usage guide
+- **`VALIDATION.md`** - Complete validation documentation
 
 ## Features
 
@@ -176,6 +178,60 @@ dvc pull
 ```
 
 For detailed DVC setup and configuration, see **[DVC_SETUP.md](DVC_SETUP.md)**.
+
+## Data & Model Validation
+
+### Comprehensive Validation System
+
+The project includes multi-level validation to ensure data quality and model reliability:
+
+**1. Training Data Validation**
+- Schema validation (required columns, data types)
+- Outlier detection using Interquartile Range (IQR)
+- Cross-field validation (tenure vs charges consistency)
+- Service consistency checks
+
+**2. API Input Validation**
+- Type validation via Pydantic models
+- Cross-field relationship checks
+- Anomaly detection with warnings
+- New `/validate` endpoint for pre-prediction checks
+
+**3. Model Performance Validation**
+- Models only logged if they meet minimum thresholds:
+  - Accuracy ≥ 75%
+  - Precision ≥ 60%
+  - Recall ≥ 50%
+  - F1 Score ≥ 55%
+
+### API Prediction with Validation
+
+The `/predict` endpoint now returns validation warnings:
+
+```json
+{
+  "prediction": "Churn",
+  "churn_probability": 0.72,
+  "confidence": 0.72,
+  "validation_warnings": [
+    "TotalCharges differs from expected by 12%",
+    "Potential anomalies detected in: tenure"
+  ],
+  "warning_count": 2
+}
+```
+
+### Check Data Before Predicting
+
+Use the `/validate` endpoint to check input quality:
+
+```bash
+curl -X POST "http://localhost:8000/validate" \
+  -H "Content-Type: application/json" \
+  -d '{...customer data...}'
+```
+
+For detailed validation documentation, see **[VALIDATION.md](VALIDATION.md)**.
 
 ## Usage
 

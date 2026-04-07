@@ -19,12 +19,42 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from validation import SchemaValidator, OutlierDetector, CrossFieldValidator, PerformanceValidator, validate_training_data
 
 
 def prepare_data():
-    """Load and prepare the Telco Customer Churn dataset."""
+    """Load and prepare the Telco Customer Churn dataset with validation."""
     print("Loading Telco Customer Churn dataset...")
     data = pd.read_csv('WA_Fn-UseC_-Telco-Customer-Churn.csv')
+    
+    # Validate schema before processing
+    print("\nValidating data schema...")
+    schema_valid, schema_errors = SchemaValidator.validate_schema(data)
+    if not schema_valid:
+        print("⚠️  Schema validation warnings:")
+        for error in schema_errors:
+            print(f"  - {error}")
+    else:
+        print("✓ Schema validation passed")
+    
+    # Check for data quality issues
+    print("\nChecking data quality...")
+    validation_results = validate_training_data(data, check_outliers=True)
+    
+    if validation_results['outlier_warnings']:
+        print("⚠️  Outliers detected in numeric columns:")
+        for col, count in validation_results['outlier_warnings'].items():
+            print(f"  - {col}: {count} outliers")
+    
+    if validation_results['cross_field_issues']:
+        print("⚠️  Cross-field validation issues (showing first 5):")
+        for issue in validation_results['cross_field_issues']:
+            print(f"  - {issue}")
+    
+    if validation_results['service_consistency_issues']:
+        print("⚠️  Service consistency issues (showing first 5):")
+        for issue in validation_results['service_consistency_issues']:
+            print(f"  - {issue}")
     
     # Drop customerID as it's not useful for prediction
     data = data.drop('customerID', axis=1)
@@ -60,7 +90,7 @@ def prepare_data():
         X, y, test_size=0.2, random_state=42
     )
     
-    print(f"Training set size: {X_train.shape[0]} samples")
+    print(f"\nTraining set size: {X_train.shape[0]} samples")
     print(f"Test set size: {X_test.shape[0]} samples")
     print(f"Number of features: {X_train.shape[1]}")
     
@@ -110,17 +140,26 @@ def train_logistic_regression(X_train, X_test, y_train, y_test):
         metrics, y_pred = evaluate_model(model, X_test, y_test)
         mlflow.log_metrics(metrics)
         
-        # Log model
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            name="model",
-            input_example=X_test.iloc[:5]
-        )
-        
         print(f"Accuracy: {metrics['accuracy']:.4f}")
         print(f"Precision: {metrics['precision']:.4f}")
         print(f"Recall: {metrics['recall']:.4f}")
         print(f"F1 Score: {metrics['f1']:.4f}")
+        
+        # Validate performance thresholds
+        passes_validation, failures = PerformanceValidator.validate_performance(metrics)
+        if passes_validation:
+            print("✓ Model passes performance thresholds")
+            # Log model only if it passes validation
+            mlflow.sklearn.log_model(
+                sk_model=model,
+                name="model",
+                input_example=X_test.iloc[:5]
+            )
+        else:
+            print("⚠️  Model does NOT meet performance thresholds:")
+            for failure in failures:
+                print(f"  - {failure}")
+            mlflow.log_param("validation_status", "FAILED")
         
         return metrics
 
@@ -161,17 +200,26 @@ def train_decision_tree(X_train, X_test, y_train, y_test):
         metrics, y_pred = evaluate_model(model, X_test, y_test)
         mlflow.log_metrics(metrics)
         
-        # Log model
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            name="model",
-            input_example=X_test.iloc[:5]
-        )
-        
         print(f"Accuracy: {metrics['accuracy']:.4f}")
         print(f"Precision: {metrics['precision']:.4f}")
         print(f"Recall: {metrics['recall']:.4f}")
         print(f"F1 Score: {metrics['f1']:.4f}")
+        
+        # Validate performance thresholds
+        passes_validation, failures = PerformanceValidator.validate_performance(metrics)
+        if passes_validation:
+            print("✓ Model passes performance thresholds")
+            # Log model only if it passes validation
+            mlflow.sklearn.log_model(
+                sk_model=model,
+                name="model",
+                input_example=X_test.iloc[:5]
+            )
+        else:
+            print("⚠️  Model does NOT meet performance thresholds:")
+            for failure in failures:
+                print(f"  - {failure}")
+            mlflow.log_param("validation_status", "FAILED")
         
         return metrics
 
@@ -224,17 +272,26 @@ def train_random_forest(X_train, X_test, y_train, y_test):
         feature_importance.to_csv(csv_path, index=False)
         mlflow.log_artifact(csv_path)
         
-        # Log model
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            name="model",
-            input_example=X_test.iloc[:5]
-        )
-        
         print(f"Accuracy: {metrics['accuracy']:.4f}")
         print(f"Precision: {metrics['precision']:.4f}")
         print(f"Recall: {metrics['recall']:.4f}")
         print(f"F1 Score: {metrics['f1']:.4f}")
+        
+        # Validate performance thresholds
+        passes_validation, failures = PerformanceValidator.validate_performance(metrics)
+        if passes_validation:
+            print("✓ Model passes performance thresholds")
+            # Log model only if it passes validation
+            mlflow.sklearn.log_model(
+                sk_model=model,
+                name="model",
+                input_example=X_test.iloc[:5]
+            )
+        else:
+            print("⚠️  Model does NOT meet performance thresholds:")
+            for failure in failures:
+                print(f"  - {failure}")
+            mlflow.log_param("validation_status", "FAILED")
         
         return metrics
 
