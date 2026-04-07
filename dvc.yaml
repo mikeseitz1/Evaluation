@@ -1,0 +1,27 @@
+stages:
+  prepare:
+    cmd: python run2.py
+    deps:
+      - WA_Fn-UseC_-Telco-Customer-Churn.csv
+      - run2.py
+    outs:
+      - scaler.pkl
+      - feature_columns.pkl
+    metrics:
+      - feature_importance.csv:
+          cache: false
+    artifacts:
+      - mlruns:
+          path: mlruns
+          type: model
+          desc: MLflow experiment tracking directory
+
+  serve:
+    cmd: uvicorn app:app --host 0.0.0.0 --port 8000
+    deps:
+      - app.py
+      - scaler.pkl
+      - feature_columns.pkl
+    params:
+      - train:
+          epochs: 1

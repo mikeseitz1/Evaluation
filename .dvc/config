@@ -1,0 +1,9 @@
+['remote "local"']
+    url = .dvc/cache
+['remote "backup"']
+    url = /tmp/dvc-storage
+
+[core]
+    remote = local
+    autostage = true
+    check_update = false
