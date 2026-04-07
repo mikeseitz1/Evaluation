@@ -73,7 +73,8 @@ def train_linear_regression(X_train, X_test, y_train, y_test):
         mlflow.log_metrics(metrics)
         
         # Log model
-        mlflow.sklearn.log_model(
+        # autologging - mlflow.sklearn.autolog() can be used for automatic logging, but here we log manually for demonstration
+            mlflow.sklearn.log_model(
             sk_model=model,
             name="model",
             input_example=X_test.iloc[:5]

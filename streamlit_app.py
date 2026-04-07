@@ -19,7 +19,7 @@ st.title("📱 Telco Customer Churn Predictor")
 st.markdown("Predict whether a customer will churn based on their profile")
 
 # Sidebar with information
-st.sidebar.header("About")
+st.sidebar.header("About the app")
 st.sidebar.markdown("""
 This app uses a machine learning model to predict customer churn for a telco company.
 
