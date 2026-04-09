@@ -289,6 +289,20 @@ Based on the latest training run:
 
 **Best Model**: Logistic Regression (F1: 0.6370)
 
+## Metrics and Hyperparameter Considerations
+
+To evaluate model performance, the project focuses on recall, precision, F1 score, and accuracy. Because the primary objective is to identify customers who are likely to churn, recall is treated as the most important metric. Missing a true churner represents a lost opportunity for retention, making false negatives more costly than false positives in this use case.
+
+Precision is used as a secondary metric to ensure that retention efforts are not applied too broadly to customers who are unlikely to churn. F1 score is used to balance recall and precision, providing a single metric for comparing model performance. Accuracy is also recorded but is not the primary decision metric, as it can be misleading in classification problems where class imbalance exists.
+
+For model experimentation, key hyperparameters are tracked through MLflow and defined in `params.yaml` to ensure reproducibility and consistency across runs. Logistic Regression serves as the baseline model due to its simplicity and interpretability. Decision Tree and Random Forest models are included to evaluate whether more complex, non-linear models improve performance.
+
+Relevant hyperparameters include regularization strength and maximum iterations for Logistic Regression, tree depth and split criteria for Decision Tree, and the number of trees and depth for Random Forest. Tracking these parameters allows for better understanding of model behavior and supports future tuning efforts.
+
+Based on experimental results, Logistic Regression achieved the strongest balance of recall and F1 score, making it the most suitable model for the current MVP. While more complex models were evaluated, they did not outperform the baseline, suggesting that the dataset relationships are effectively captured by a simpler model.
+
+Future improvements may include hyperparameter tuning, feature engineering, and classification threshold adjustment to further improve recall and overall model performance.
+
 ## MLflow Tracking
 
 View experiment results in MLflow UI:
