@@ -99,9 +99,8 @@ def prepare_data():
 
 def evaluate_model(model, X_test, y_test):
     """Evaluate model and return metrics."""
-    y_probs = model.predict_proba(X_test)[:, 1]
-    threshold = 0.4
-    y_pred = (y_probs >= threshold).astype(int)
+    y_pred = model.predict(X_test)
+
     
     metrics = {
         "accuracy": accuracy_score(y_test, y_pred),
@@ -137,9 +136,19 @@ def train_logistic_regression(X_train, X_test, y_train, y_test):
         mlflow.log_param("model_type", "LogisticRegression")
         mlflow.log_param("random_state", 42)
         mlflow.log_param("max_iter", 1000)
+        mlflow.log_param("threshold", 0.4)
         
         # Evaluate and log metrics
-        metrics, y_pred = evaluate_model(model, X_test, y_test)
+        y_probs = model.predict_proba(X_test)[:, 1]
+        threshold = 0.4
+        y_pred = (y_probs >= threshold).astype(int)
+
+        metrics = {
+            "accuracy": accuracy_score(y_test, y_pred),
+            "precision": precision_score(y_test, y_pred),
+            "recall": recall_score(y_test, y_pred),
+            "f1": f1_score(y_test, y_pred)
+        }
         mlflow.log_metrics(metrics)
         
         print(f"Accuracy: {metrics['accuracy']:.4f}")
