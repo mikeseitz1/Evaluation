@@ -99,7 +99,9 @@ def prepare_data():
 
 def evaluate_model(model, X_test, y_test):
     """Evaluate model and return metrics."""
-    y_pred = model.predict(X_test)
+    y_probs = model.predict_proba(X_test)[:, 1]
+    threshold = 0.4
+    y_pred = (y_probs >= threshold).astype(int)
     
     metrics = {
         "accuracy": accuracy_score(y_test, y_pred),
