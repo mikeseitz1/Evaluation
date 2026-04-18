@@ -163,7 +163,7 @@ def train_logistic_regression(X_train, X_test, y_train, y_test):
             # Log model only if it passes validation
             mlflow.sklearn.log_model(
                 sk_model=model,
-                name="model",
+                name="Logistic Regression",
                 input_example=X_test.iloc[:5]
             )
         else:
@@ -223,7 +223,7 @@ def train_decision_tree(X_train, X_test, y_train, y_test):
             # Log model only if it passes validation
             mlflow.sklearn.log_model(
                 sk_model=model,
-                name="model",
+                name="Decision Tree",
                 input_example=X_test.iloc[:5]
             )
         else:
@@ -295,7 +295,7 @@ def train_random_forest(X_train, X_test, y_train, y_test):
             # Log model only if it passes validation
             mlflow.sklearn.log_model(
                 sk_model=model,
-                name="model",
+                name="Random Forest",
                 input_example=X_test.iloc[:5]
             )
         else:
