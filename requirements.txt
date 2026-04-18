@@ -1,26 +1,12 @@
 
-# Python Requirements for Telco Churn MLflow Exercise
-# Exercise 6.7 - Machine Learning Design for Business
+# Python Requirements for Streamlit Cloud deployment
+# Keep this minimal for app runtime
 
-# Core ML and Data Science Libraries
 numpy==1.26.4
 pandas==2.2.0
 scikit-learn==1.5.1
 joblib==1.3.2
 xgboost==2.0.3
-
-# MLflow for Experiment Tracking
-mlflow==2.12.2
-
-# DVC for Data Versioning
-dvc==3.48.0
-
-# Web Frameworks
-fastapi==0.104.1
-uvicorn==0.24.0
 streamlit==1.28.1
-pydantic==2.5.0
-
-# Optional but recommended
-matplotlib==3.8.0
-seaborn==0.13.0
+setuptools>=68.0.0
+wheel>=0.40.0
