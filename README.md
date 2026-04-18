@@ -1,6 +1,7 @@
 # Telco Customer Churn Prediction
 
 This project demonstrates a complete machine learning workflow for predicting customer churn using the Telco Customer Churn dataset. It includes MLflow experiment tracking, FastAPI deployment, and a Streamlit web interface.
+Note: this version has been deployed to streamlit.io. URL : https://evaluation-nstxafz3ppfi33tcykfqix.streamlit.app/
 
 ## Project Structure
 

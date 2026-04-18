@@ -1,11 +1,12 @@
 """
 Streamlit Application for Telco Customer Churn Prediction
-Interactive UI to test the churn prediction model via FastAPI
+Interactive UI to test the churn prediction model directly
 """
 
 import streamlit as st
-import requests
-import json
+import pandas as pd
+import joblib
+import os
 
 # Page configuration
 st.set_page_config(
@@ -13,6 +14,25 @@ st.set_page_config(
     page_icon="📱",
     layout="wide"
 )
+
+# Load model and preprocessing artifacts
+@st.cache_resource
+def load_model():
+    """Load the trained model and preprocessing artifacts."""
+    try:
+        # Load the best model
+        model = joblib.load('best_model.pkl')
+        
+        # Load preprocessing artifacts
+        scaler = joblib.load('scaler.pkl')
+        feature_columns = joblib.load('feature_columns.pkl')
+        
+        return model, scaler, feature_columns
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        return None, None, None
+
+model, scaler, feature_columns = load_model()
 
 # Title
 st.title("📱 Telco Customer Churn Predictor")
@@ -23,10 +43,13 @@ st.sidebar.header("About the app")
 st.sidebar.markdown("""
 This app uses a machine learning model to predict customer churn for a telco company.
 
-**Model**: Logistic Regression  
+**Model**: Random Forest (or your best model)  
 **Features**: Customer demographics, service usage, billing info  
-**API**: FastAPI backend
+**Deployment**: Streamlit Cloud
 """)
+
+if model is None:
+    st.stop()
 
 # Create two columns for input
 col1, col2 = st.columns(2)
@@ -109,41 +132,48 @@ if st.button("🔮 Predict Churn", type="primary"):
         "TotalCharges": total_charges
     }
     
-    # Make API request
-    try:
-        response = requests.post("http://localhost:8000/predict", json=input_data)
+    # Convert to DataFrame and preprocess
+    df = pd.DataFrame([input_data])
+    
+    # One-hot encode categorical features
+    df_encoded = pd.get_dummies(df, drop_first=True)
+    
+    # Ensure all expected columns are present
+    for col in feature_columns:
+        if col not in df_encoded.columns:
+            df_encoded[col] = 0
+    
+    # Reorder columns to match training
+    df_encoded = df_encoded[feature_columns]
+    
+    # Scale the features
+    df_scaled = scaler.transform(df_encoded)
+    
+    # Make prediction
+    prediction_proba = model.predict_proba(df_scaled)[0]
+    churn_probability = prediction_proba[1]
+    prediction = "Churn" if churn_probability > 0.5 else "No Churn"
+    
+    # Display results
+    st.success("Prediction completed!")
+    
+    col_result1, col_result2 = st.columns(2)
+    
+    with col_result1:
+        st.metric("Prediction", prediction)
         
-        if response.status_code == 200:
-            result = response.json()
-            
-            # Display results
-            st.success("Prediction completed!")
-            
-            col_result1, col_result2 = st.columns(2)
-            
-            with col_result1:
-                st.metric("Prediction", result["prediction"])
-                
-            with col_result2:
-                st.metric("Churn Probability", f"{result['churn_probability']:.1%}")
-            
-            # Progress bar for probability
-            st.progress(result["churn_probability"])
-            
-            # Additional info
-            if result["prediction"] == "Churn":
-                st.warning("⚠️ This customer is likely to churn. Consider retention strategies!")
-            else:
-                st.success("✅ This customer is likely to stay. Great!")
-                
-        else:
-            st.error(f"API Error: {response.status_code}")
-            st.text(response.text)
-            
-    except requests.exceptions.RequestException as e:
-        st.error(f"Connection Error: {e}")
-        st.info("Make sure the FastAPI server is running on http://localhost:8000")
+    with col_result2:
+        st.metric("Churn Probability", f"{churn_probability:.1%}")
+    
+    # Progress bar for probability
+    st.progress(float(churn_probability))
+    
+    # Additional info
+    if prediction == "Churn":
+        st.warning("⚠️ This customer is likely to churn. Consider retention strategies!")
+    else:
+        st.success("✅ This customer is likely to stay. Great!")
 
 # Footer
 st.markdown("---")
-st.markdown("*Built with FastAPI, Streamlit, and MLflow*")
+st.markdown("*Built with Streamlit and scikit-learn*")
