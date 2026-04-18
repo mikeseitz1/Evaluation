@@ -19,6 +19,17 @@ venv/
 ENV/
 .venv
 
+# MLflow
+mlruns/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
 # IDE
 .vscode/
 .vs/

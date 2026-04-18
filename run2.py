@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 import os
 import joblib
+import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -81,7 +82,6 @@ def prepare_data():
     X = pd.DataFrame(X_scaled, columns=X.columns)
     
     # Save preprocessing artifacts for API use
-    import joblib
     joblib.dump(scaler, 'scaler.pkl')
     joblib.dump(list(X.columns), 'feature_columns.pkl')
     
@@ -112,31 +112,40 @@ def evaluate_model(model, X_test, y_test):
     return metrics, y_pred
 
 
+def log_run_metadata(run_name, X_train, X_test, model_type, params=None):
+    print("="*60)
+    print(f"Training: {run_name}")
+    print("="*60)
+    mlflow.log_param("dataset", "Telco Customer Churn")
+    mlflow.log_param("train_samples", X_train.shape[0])
+    mlflow.log_param("test_samples", X_test.shape[0])
+    mlflow.log_param("n_features", X_train.shape[1])
+    mlflow.log_param("preprocessing", "StandardScaler + OneHotEncoding + Imputation")
+    mlflow.log_param("model_type", model_type)
+    if params:
+        mlflow.log_params(params)
+
+
 def train_logistic_regression(X_train, X_test, y_train, y_test):
     """Train and log Logistic Regression model."""
     run_name = "Logistic Regression"
     
     with mlflow.start_run(run_name=run_name) as run:
-        print(f"{'='*60}")
-        print(f"Training: {run_name}")
-        print(f"{'='*60}")
-        
-        # Log dataset information
-        mlflow.log_param("dataset", "Telco Customer Churn")
-        mlflow.log_param("train_samples", X_train.shape[0])
-        mlflow.log_param("test_samples", X_test.shape[0])
-        mlflow.log_param("n_features", X_train.shape[1])
-        mlflow.log_param("preprocessing", "StandardScaler + OneHotEncoding + Imputation")
+        log_run_metadata(
+            run_name,
+            X_train,
+            X_test,
+            model_type="LogisticRegression",
+            params={
+                "random_state": 42,
+                "max_iter": 1000,
+                "threshold": 0.4
+            }
+        )
         
         # Train model
         model = LogisticRegression(random_state=42, max_iter=1000)
         model.fit(X_train, y_train)
-        
-        # Log model parameters
-        mlflow.log_param("model_type", "LogisticRegression")
-        mlflow.log_param("random_state", 42)
-        mlflow.log_param("max_iter", 1000)
-        mlflow.log_param("threshold", 0.4)
         
         # Evaluate and log metrics
         y_probs = model.predict_proba(X_test)[:, 1]
@@ -180,16 +189,18 @@ def train_decision_tree(X_train, X_test, y_train, y_test):
     run_name = "Decision Tree"
     
     with mlflow.start_run(run_name=run_name) as run:
-        print("="*60)
-        print(f"Training: {run_name}")
-        print("="*60)
-        
-        # Log dataset information
-        mlflow.log_param("dataset", "Telco Customer Churn")
-        mlflow.log_param("train_samples", X_train.shape[0])
-        mlflow.log_param("test_samples", X_test.shape[0])
-        mlflow.log_param("n_features", X_train.shape[1])
-        mlflow.log_param("preprocessing", "StandardScaler + OneHotEncoding + Imputation")
+        log_run_metadata(
+            run_name,
+            X_train,
+            X_test,
+            model_type="DecisionTreeClassifier",
+            params={
+                "max_depth": 10,
+                "min_samples_split": 25,
+                "min_samples_leaf": 15,
+                "random_state": 42
+            }
+        )
         
         # Model hyperparameters
         params = {
@@ -202,10 +213,6 @@ def train_decision_tree(X_train, X_test, y_train, y_test):
         # Train model
         model = DecisionTreeClassifier(**params)
         model.fit(X_train, y_train)
-        
-        # Log model parameters
-        mlflow.log_param("model_type", "DecisionTreeClassifier")
-        mlflow.log_params(params)
         
         # Evaluate and log metrics
         metrics, y_pred = evaluate_model(model, X_test, y_test)
@@ -240,16 +247,20 @@ def train_random_forest(X_train, X_test, y_train, y_test):
     run_name = "Random Forest"
     
     with mlflow.start_run(run_name=run_name) as run:
-        print("="*60)
-        print(f"Training: {run_name}")
-        print("="*60)
-        
-        # Log dataset information
-        mlflow.log_param("dataset", "Telco Customer Churn")
-        mlflow.log_param("train_samples", X_train.shape[0])
-        mlflow.log_param("test_samples", X_test.shape[0])
-        mlflow.log_param("n_features", X_train.shape[1])
-        mlflow.log_param("preprocessing", "StandardScaler + OneHotEncoding + Imputation")
+        log_run_metadata(
+            run_name,
+            X_train,
+            X_test,
+            model_type="RandomForestClassifier",
+            params={
+                "n_estimators": 100,
+                "max_depth": 15,
+                "min_samples_split": 10,
+                "min_samples_leaf": 4,
+                "random_state": 42,
+                "n_jobs": -1
+            }
+        )
         
         # Model hyperparameters
         params = {
@@ -264,10 +275,6 @@ def train_random_forest(X_train, X_test, y_train, y_test):
         # Train model
         model = RandomForestClassifier(**params)
         model.fit(X_train, y_train)
-        
-        # Log model parameters
-        mlflow.log_param("model_type", "RandomForestClassifier")
-        mlflow.log_params(params)
         
         # Evaluate and log metrics
         metrics, y_pred = evaluate_model(model, X_test, y_test)
@@ -307,6 +314,57 @@ def train_random_forest(X_train, X_test, y_train, y_test):
         return metrics
 
 
+def train_xgboost(X_train, X_test, y_train, y_test):
+    """Train and log XGBoost model."""
+    run_name = "XGBoost"
+
+    with mlflow.start_run(run_name=run_name) as run:
+        params = {
+            "objective": "binary:logistic",
+            "eval_metric": "logloss",
+            "max_depth": 6,
+            "eta": 0.1,
+            "scale_pos_weight": int((y_train == 0).sum() / (y_train == 1).sum()),
+            "use_label_encoder": False,
+            "random_state": 42,
+            "n_jobs": -1
+        }
+
+        log_run_metadata(
+            run_name,
+            X_train,
+            X_test,
+            model_type="XGBoost",
+            params=params
+        )
+
+        model = xgb.XGBClassifier(**params)
+        model.fit(X_train, y_train)
+
+        metrics, y_pred = evaluate_model(model, X_test, y_test)
+        mlflow.log_metrics(metrics)
+
+        print(f"Accuracy: {metrics['accuracy']:.4f}")
+        print(f"Precision: {metrics['precision']:.4f}")
+        print(f"Recall: {metrics['recall']:.4f}")
+        print(f"F1 Score: {metrics['f1']:.4f}")
+
+        passes_validation, failures = PerformanceValidator.validate_performance(metrics)
+        if passes_validation:
+            print("✓ Model passes performance thresholds")
+            mlflow.sklearn.log_model(
+                sk_model=model,
+                name="XGBoost",
+                input_example=X_test.iloc[:5]
+            )
+        else:
+            print("⚠️  Model does NOT meet performance thresholds:")
+            for failure in failures:
+                print(f"  - {failure}")
+            mlflow.log_param("validation_status", "FAILED")
+
+        return metrics
+
 
 def main():
     """Main execution function."""
@@ -333,6 +391,7 @@ def main():
     results['Logistic Regression'] = train_logistic_regression(X_train, X_test, y_train, y_test)
     results['Decision Tree'] = train_decision_tree(X_train, X_test, y_train, y_test)
     results['Random Forest'] = train_random_forest(X_train, X_test, y_train, y_test)
+    results['XGBoost'] = train_xgboost(X_train, X_test, y_train, y_test)
     
     # Summary
     print("\n" + "="*60)
@@ -350,6 +409,25 @@ def main():
     print(f"Best Model: {best_model[0]}")
     print(f"F1 Score: {best_model[1]['f1']:.4f}")
     print("="*60)
+    
+    # Save the best model for deployment
+    print("\nSaving best model for deployment...")
+    if best_model[0] == 'Logistic Regression':
+        best_trained_model = LogisticRegression(random_state=42, max_iter=1000)
+        best_trained_model.fit(X_train, y_train)
+    elif best_model[0] == 'Decision Tree':
+        best_trained_model = DecisionTreeClassifier(max_depth=10, min_samples_split=25, min_samples_leaf=15, random_state=42)
+        best_trained_model.fit(X_train, y_train)
+    elif best_model[0] == 'Random Forest':
+        best_trained_model = RandomForestClassifier(n_estimators=100, max_depth=15, min_samples_split=10, min_samples_leaf=4, random_state=42, n_jobs=-1)
+        best_trained_model.fit(X_train, y_train)
+    elif best_model[0] == 'XGBoost':
+        params = {"objective": "binary:logistic", "eval_metric": "logloss", "max_depth": 6, "eta": 0.1, "scale_pos_weight": int((y_train == 0).sum() / (y_train == 1).sum()), "use_label_encoder": False, "random_state": 42, "n_jobs": -1}
+        best_trained_model = xgb.XGBClassifier(**params)
+        best_trained_model.fit(X_train, y_train)
+    
+    joblib.dump(best_trained_model, 'best_model.pkl')
+    print("Best model saved as 'best_model.pkl'")
     
     print("\n[SUCCESS] Experiments completed successfully!")
     print("\nTo view results in MLflow UI, run:")
