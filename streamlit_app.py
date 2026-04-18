@@ -166,17 +166,13 @@ if st.button("🔮 Predict Churn", type="primary"):
         st.metric("Churn Probability", f"{churn_probability:.1%}")
     
     # Progress bar for probability
-    st.progress(churn_probability)
+    st.progress(float(churn_probability))
     
     # Additional info
     if prediction == "Churn":
         st.warning("⚠️ This customer is likely to churn. Consider retention strategies!")
     else:
         st.success("✅ This customer is likely to stay. Great!")
-
-# Footer
-st.markdown("---")
-st.markdown("*Built with Streamlit and scikit-learn*")
 
 # Footer
 st.markdown("---")
